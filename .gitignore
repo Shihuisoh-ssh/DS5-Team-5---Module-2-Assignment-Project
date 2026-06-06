@@ -13,6 +13,9 @@ logs/
 target/
 dbt_packages/
 
+# Meltano
+meltano/.meltano/
+
 # Python
 __pycache__/
 *.pyc
