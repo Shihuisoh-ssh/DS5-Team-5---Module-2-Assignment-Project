@@ -10,6 +10,8 @@ models:
         tests: [not_null]
       - name: order_status
         tests: [not_null]
+      - name: loading_date
+        tests: [not_null]
 
   - name: stg_customers
     description: "Customer details with standardised zip code."
@@ -17,6 +19,8 @@ models:
       - name: customer_id
         tests: [not_null, unique]
       - name: customer_unique_id
+        tests: [not_null]
+      - name: loading_date
         tests: [not_null]
 
   - name: stg_order_items
@@ -30,11 +34,15 @@ models:
         tests: [not_null]
       - name: seller_id
         tests: [not_null]
+      - name: loading_date
+        tests: [not_null]
 
   - name: stg_order_payments
     description: "Payment records per order. One order may have multiple rows."
     columns:
       - name: order_id
+        tests: [not_null]
+      - name: loading_date
         tests: [not_null]
 
   - name: stg_order_reviews
@@ -44,23 +52,31 @@ models:
         tests: [not_null]
       - name: order_id
         tests: [not_null]
+      - name: loading_date
+        tests: [not_null]
 
   - name: stg_products
     description: "Product catalogue with cast numeric dimensions."
     columns:
       - name: product_id
         tests: [not_null, unique]
+      - name: loading_date
+        tests: [not_null]
 
   - name: stg_sellers
     description: "Seller details with standardised zip code."
     columns:
       - name: seller_id
         tests: [not_null, unique]
+      - name: loading_date
+        tests: [not_null]
 
   - name: stg_geolocation
     description: "Geolocation lookup by zip code prefix."
     columns:
       - name: zip_code_prefix
+        tests: [not_null]
+      - name: loading_date
         tests: [not_null]
 
   - name: stg_category_name_translation
@@ -68,3 +84,5 @@ models:
     columns:
       - name: product_category_name
         tests: [not_null, unique]
+      - name: loading_date
+        tests: [not_null]

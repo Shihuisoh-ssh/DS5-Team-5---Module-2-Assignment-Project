@@ -12,9 +12,10 @@ pipeline_job = define_asset_job(
 daily_schedule = ScheduleDefinition(
     name="olist_daily_schedule",
     job=pipeline_job,
-    cron_schedule="55 23 * * *",
+    cron_schedule="55 23 * * *", 
     execution_timezone="Asia/Singapore",
-)
+) 
+# GMT+8, 23:55H
 
 defs = Definitions(
     assets=all_assets,
