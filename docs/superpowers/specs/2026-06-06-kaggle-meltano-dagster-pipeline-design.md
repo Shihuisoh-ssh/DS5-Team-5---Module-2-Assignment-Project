@@ -37,8 +37,10 @@ the orchestrator, Meltano as the CSV-to-BigQuery loader, and a daily Dagster sch
 [Dagster Schedule: daily at 23:55 SGT (15:55 UTC) — cron: "55 15 * * *"]
 ```
 
-**Overwrite strategy:** Each run truncates and reloads all 9 BigQuery tables in `kaggle_data`.
-No staging/MERGE needed — Meltano `load_method: overwrite` handles this.
+**Overwrite + loading_date strategy:** Each run truncates and reloads all 9 BigQuery tables in
+`kaggle_data`. Meltano `add_record_metadata: true` automatically adds `_sdc_received_at` (UTC
+timestamp of load) to every row. dbt staging models alias this as `loading_date`. No
+staging/MERGE needed.
 
 ---
 
@@ -86,6 +88,7 @@ DS5-Team-5---Module-2-Assignment-Project/
 **Loader:** `target-bigquery` (variant: meltanolabs)
 - Writes to `our-project-93971.kaggle_data`
 - `load_method: overwrite` — truncates and reloads each table on every run
+- `add_record_metadata: true` — adds `_sdc_received_at` (UTC load timestamp) to every row
 - Auth: service account JSON via `${GCP_KEYFILE_PATH}`, or GCP ADC if left blank
 
 **9 table configs:**
@@ -115,6 +118,21 @@ DS5-Team-5---Module-2-Assignment-Project/
 
 All assets use `subprocess.run` with `check=True` so any non-zero exit code raises an
 exception and stops the pipeline with a visible error in the Dagster UI.
+
+---
+
+## loading_date Column
+
+Meltano's `add_record_metadata: true` adds `_sdc_received_at` (UTC timestamp) to every row at
+load time. All 9 dbt staging models alias this column:
+
+```sql
+_sdc_received_at AS loading_date
+```
+
+This gives every row an audit timestamp showing exactly when it was loaded into BigQuery.
+Because the strategy is overwrite, all rows in a given run share the same `loading_date`.
+Querying `SELECT MAX(loading_date) FROM kaggle_data.orders` tells you the last successful run.
 
 ---
 
