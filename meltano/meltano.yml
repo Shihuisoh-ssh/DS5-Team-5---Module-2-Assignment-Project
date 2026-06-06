@@ -1,0 +1,116 @@
+version: 1
+default_environment: dev
+project_id: a3b4c5d6-e7f8-9012-abcd-ef3456789012
+
+environments:
+  - name: dev
+
+plugins:
+  extractors:
+
+    # ── Full-table extractor (6 tables without timestamp columns) ──────────
+    - name: tap-spreadsheets-anywhere
+      variant: ets
+      pip_url: tap-spreadsheets-anywhere
+      config:
+        tables:
+          - path: ${DATA_RAW_PATH}
+            name: customers
+            pattern: "olist_customers_dataset\\.csv"
+            start_date: "2000-01-01T00:00:00Z"
+            key_properties: [customer_id]
+            format: csv
+
+          - path: ${DATA_RAW_PATH}
+            name: order_payments
+            pattern: "olist_order_payments_dataset\\.csv"
+            start_date: "2000-01-01T00:00:00Z"
+            key_properties: [order_id, payment_sequential]
+            format: csv
+
+          - path: ${DATA_RAW_PATH}
+            name: products
+            pattern: "olist_products_dataset\\.csv"
+            start_date: "2000-01-01T00:00:00Z"
+            key_properties: [product_id]
+            format: csv
+
+          - path: ${DATA_RAW_PATH}
+            name: sellers
+            pattern: "olist_sellers_dataset\\.csv"
+            start_date: "2000-01-01T00:00:00Z"
+            key_properties: [seller_id]
+            format: csv
+
+          - path: ${DATA_RAW_PATH}
+            name: geolocation
+            pattern: "olist_geolocation_dataset\\.csv"
+            start_date: "2000-01-01T00:00:00Z"
+            key_properties: []
+            format: csv
+
+          - path: ${DATA_RAW_PATH}
+            name: category_name_translation
+            pattern: "product_category_name_translation\\.csv"
+            start_date: "2000-01-01T00:00:00Z"
+            key_properties: [product_category_name]
+            format: csv
+
+    # ── Incremental extractor (3 tables with timestamp columns) ───────────
+    - name: tap-spreadsheets-anywhere--incremental
+      variant: ets
+      pip_url: tap-spreadsheets-anywhere
+      config:
+        tables:
+          - path: ${DATA_RAW_PATH}
+            name: orders
+            pattern: "olist_orders_dataset\\.csv"
+            start_date: "2016-01-01T00:00:00Z"
+            key_properties: [order_id]
+            replication_method: INCREMENTAL
+            replication_key: order_purchase_timestamp
+            format: csv
+
+          - path: ${DATA_RAW_PATH}
+            name: order_items
+            pattern: "olist_order_items_dataset\\.csv"
+            start_date: "2016-01-01T00:00:00Z"
+            key_properties: [order_id, order_item_id]
+            replication_method: INCREMENTAL
+            replication_key: shipping_limit_date
+            format: csv
+
+          - path: ${DATA_RAW_PATH}
+            name: order_reviews
+            pattern: "olist_order_reviews_dataset\\.csv"
+            start_date: "2016-01-01T00:00:00Z"
+            key_properties: [review_id]
+            replication_method: INCREMENTAL
+            replication_key: review_creation_date
+            format: csv
+
+  loaders:
+
+    # ── Full-table loader (overwrite) ──────────────────────────────────────
+    - name: target-bigquery
+      variant: meltanolabs
+      pip_url: meltanolabs-target-bigquery
+      config:
+        project_id: ${GCP_PROJECT_ID}
+        dataset_id: kaggle_data
+        location: US
+        add_record_metadata: true
+        load_method: overwrite
+        credentials_path: ${GCP_KEYFILE_PATH}
+
+    # ── Incremental loader (append-only) ──────────────────────────────────
+    - name: target-bigquery--incremental
+      variant: meltanolabs
+      pip_url: meltanolabs-target-bigquery
+      config:
+        project_id: ${GCP_PROJECT_ID}
+        dataset_id: kaggle_data
+        location: US
+        add_record_metadata: true
+        load_method: append-only
+        credentials_path: ${GCP_KEYFILE_PATH}
