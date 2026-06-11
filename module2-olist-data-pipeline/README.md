@@ -294,7 +294,7 @@ run_dbt_staging
 run_dbt_data_quality
         ↓
 run_dbt_star_schema
-        ↓
+        ↓conda
 run_dbt_tests
 ```
 
@@ -427,16 +427,17 @@ See [`docs/schema_design.md`](docs/schema_design.md) for column definitions and 
 **Prerequisites:** conda env `elt` with dbt-bigquery, GCP credentials via `gcloud auth application-default login`.
 
 ```bash
-cd our_project
+conda activate elt
+cd meltano/transform/our_project
 
 # 1. Verify connection
-/home/fionalyh/miniconda3/envs/elt/bin/dbt debug
+dbt debug
 
 # 2. Build all models
-/home/fionalyh/miniconda3/envs/elt/bin/dbt run
+dbt run
 
 # 3. Run all tests
-/home/fionalyh/miniconda3/envs/elt/bin/dbt test
+dbt test
 ```
 
 Expected: `24 of 24 OK` on run, `53 of 53 PASS` on test.
