@@ -5,7 +5,7 @@
 
 ## 1. Project Overview
 
-This project builds an end-to-end ELT data pipeline for the Olist Brazilian E-Commerce dataset using GCP BigQuery and dbt. Raw CSV data is loaded into BigQuery, transformed through three dbt layers (staging → data quality → star schema), and analysed in Jupyter notebooks.
+This project builds an end-to-end ELT data pipeline for the Olist Brazilian E-Commerce dataset. Data is extracted from Supabase using Meltano and loaded into GCP BigQuery, transformed through three dbt layers (staging → data quality → star schema), orchestrated by Dagster, and analysed in Jupyter notebooks.
 
 **Status:** Pipeline complete — 24 dbt models built, 53 tests passing.
 
@@ -27,27 +27,331 @@ This project creates a structured data warehouse to support analysis on:
 
 ## 3. Architecture
 
-```
-Kaggle CSVs (9 files)
-    ↓ bq load
-BigQuery: our-project-93971.kaggle_data   ← raw, untouched
-    ↓ dbt run
-olist_dev_staging     (views)             ← Layer 1: rename, cast, standardise
-    ↓                      ↓
-olist_dev_data_quality     olist_dev_star ← Layer 2: flag issues | Layer 3: clean star schema
-(tables)                   (tables)
+### Updated Pipeline Flow
+
+This project uses an end-to-end ELT data engineering pipeline to move data from Supabase into Google BigQuery, transform it using dbt, orchestrate the workflow using Dagster, and analyse the final warehouse tables in Jupyter Notebook.
+
+The pipeline flow is:
+
+```text
+Supabase
     ↓
-Analysis — Jupyter notebooks / BigQuery
+Meltano
+    ↓
+GCP BigQuery raw tables
+    ↓
+dbt staging models
+    ↓
+dbt data quality models
+    ↓
+dbt star schema warehouse
+    ↓
+Dagster orchestration
+    ↓
+Jupyter Notebook visualisation
+    ↓
+Business insights and recommendation
 ```
 
-See [`docs/architecture.md`](docs/architecture.md) for the full design.
+---
+
+### Tool Responsibilities
+
+| Tool             | Role in This Project                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| Supabase         | Source database that stores the raw operational dataset                                                       |
+| Meltano          | Extracts data from Supabase and loads it into BigQuery                                                        |
+| GCP BigQuery     | Cloud data warehouse used to store raw, staging, data quality, and star schema tables                         |
+| dbt              | Transforms raw BigQuery tables into cleaned staging models, data quality models, and final star schema models |
+| Dagster          | Orchestrates the pipeline so Meltano and dbt run in the correct sequence                                      |
+| Jupyter Notebook | Connects to the final BigQuery warehouse tables for analysis and visualisation                                |
+
+---
+
+### Architecture Diagram
+
+```text
+Supabase source tables
+        ↓
+Meltano extract and load
+        ↓
+BigQuery raw dataset
+        ↓
+dbt staging layer
+        ↓
+dbt data quality layer
+        ↓
+dbt star schema layer
+        ↓
+Jupyter Notebook analysis
+```
+
+With Dagster orchestration:
+
+```text
+Dagster job
+├── Step 1: Run Meltano extraction and loading
+├── Step 2: Validate that raw tables exist in BigQuery
+├── Step 3: Run dbt staging models
+├── Step 4: Run dbt data quality models
+├── Step 5: Run dbt star schema models
+├── Step 6: Run dbt tests
+└── Step 7: Prepare final tables for Jupyter Notebook analysis
+```
+
+---
+
+### Pipeline Stages
+
+#### 1. Source Layer — Supabase
+
+Supabase acts as the source system for this project. The raw operational dataset is stored in Supabase before being extracted into the analytics warehouse.
+
+Example source tables may include:
+
+```text
+orders
+customers
+products
+sellers
+payments
+reviews
+order_items
+```
+
+---
+
+#### 2. Extraction and Loading Layer — Meltano
+
+Meltano is used to extract data from Supabase and load it into BigQuery.
+
+In this project, Meltano handles the EL part of ELT:
+
+```text
+Extract: Supabase
+Load: BigQuery raw dataset
+```
+
+Meltano does not perform the main business transformations. Its main purpose is to move the source data reliably into BigQuery.
+
+---
+
+#### 3. Raw Data Layer — BigQuery
+
+After Meltano runs, the raw Supabase data is stored in BigQuery.
+
+This layer keeps the loaded data close to its original source structure. It acts as the landing area before dbt transformations are applied.
+
+Example:
+
+```text
+BigQuery raw dataset
+├── raw_orders
+├── raw_customers
+├── raw_products
+├── raw_sellers
+├── raw_payments
+├── raw_reviews
+└── raw_order_items
+```
+
+---
+
+#### 4. Transformation Layer — dbt Staging Models
+
+dbt is used to transform the raw BigQuery tables into standardised staging models.
+
+The staging layer performs light cleaning and standardisation, such as:
+
+```text
+Renaming columns
+Casting data types
+Standardising date and timestamp fields
+Standardising ID fields
+Handling empty strings and null values
+Keeping source row counts unchanged where possible
+```
+
+Example staging models:
+
+```text
+stg_orders
+stg_customers
+stg_products
+stg_sellers
+stg_payments
+stg_reviews
+stg_order_items
+```
+
+---
+
+#### 5. Data Quality Layer — dbt Data Quality Models
+
+The data quality layer identifies records that may affect analysis reliability.
+
+Example checks include:
+
+```text
+Missing primary keys
+Duplicate records
+Invalid date logic
+Negative payment or order values
+Missing product categories
+Missing customer or seller references
+Orders without matching order items
+```
+
+The purpose of this layer is to make data issues visible before the final warehouse tables are used for analysis.
+
+---
+
+#### 6. Warehouse Layer — dbt Star Schema
+
+The final analytics layer is built as a star schema.
+
+The star schema contains fact and dimension tables that are easier for business analysis.
+
+Example star schema:
+
+```text
+dim_customers       dim_products
+       \              /
+        \            /
+       fact_order_items
+        /      |      \
+dim_sellers dim_dates dim_payments
+```
+
+Example warehouse models:
+
+```text
+fact_order_items
+fact_orders
+dim_customers
+dim_products
+dim_sellers
+dim_dates
+```
+
+The fact tables store measurable business events, while the dimension tables store descriptive information.
+
+This structure supports business questions such as:
+
+```text
+Monthly sales trends
+Top product categories by revenue
+Customer purchasing behaviour
+Seller performance
+Delivery delay analysis
+Review score patterns
+```
+
+---
+
+#### 7. Calculated Business Metrics
+
+dbt is also used to create calculated metrics that support business analysis.
+
+Example calculated fields:
+
+```text
+total_order_item_value = price + freight_value
+delivery_days = delivered_customer_date - purchase_date
+is_late_delivery = delivered_customer_date > estimated_delivery_date
+order_month = month extracted from purchase date
+review_score_group = low, medium, high
+freight_ratio = freight_value / total_order_item_value
+```
+
+These metrics make the final warehouse tables more useful for business reporting and visualisation.
+
+---
+
+#### 8. Orchestration Layer — Dagster
+
+Dagster is used to orchestrate the full pipeline.
+
+Instead of manually running Meltano and dbt commands one by one, Dagster controls the workflow sequence.
+
+Dagster ensures that:
+
+```text
+Meltano runs before dbt
+dbt staging runs before dbt star schema models
+dbt tests run after dbt models are built
+Failures are easier to identify and troubleshoot
+The pipeline is repeatable and observable
+```
+
+Recommended Dagster flow:
+
+```text
+extract_load_supabase_to_bigquery
+        ↓
+run_dbt_staging
+        ↓
+run_dbt_data_quality
+        ↓
+run_dbt_star_schema
+        ↓
+run_dbt_tests
+```
+
+---
+
+#### 9. Analysis Layer — Jupyter Notebook
+
+Jupyter Notebook is used only after the cleaned warehouse tables are created.
+
+The notebook connects to BigQuery and queries the final dbt models for visualisation and business analysis.
+
+The notebook should focus on:
+
+```text
+SQL queries from final warehouse tables
+Pandas analysis
+Charts and visualisation
+Business issue identification
+Recommendations
+```
+
+The notebook should not contain the main transformation logic, because transformation is handled by dbt.
+
+---
+
+### Final End-to-End Flow
+
+```text
+1. Store source data in Supabase
+2. Use Meltano to extract from Supabase and load into BigQuery
+3. Store raw loaded data in BigQuery raw tables
+4. Use dbt to create staging models
+5. Use dbt to create data quality models
+6. Use dbt to create star schema warehouse models
+7. Use dbt tests to validate data quality and relationships
+8. Use Dagster to orchestrate Meltano and dbt in the correct sequence
+9. Use Jupyter Notebook to analyse and visualise final warehouse tables
+10. Present business insights and recommendations
+```
+
+---
+
+### Summary
+
+This project demonstrates a modern ELT data engineering workflow.
+
+Supabase is used as the source database, Meltano handles extraction and loading, BigQuery acts as the cloud data warehouse, dbt performs transformation and testing, Dagster orchestrates the pipeline, and Jupyter Notebook is used for final analysis and visualisation.
+
+The final output is a clean star schema warehouse that supports business analysis and decision-making.
 
 ---
 
 ## 4. Dataset
 
-**Source:** Brazilian E-Commerce Public Dataset by Olist (Kaggle)
-**Loaded into:** `our-project-93971.kaggle_data` (BigQuery)
+**Source:** Brazilian E-Commerce Public Dataset by Olist — stored in Supabase
+**Extracted via:** Meltano (`tap-postgres` → `target-bigquery`)
+**Loaded into:** `our-project-93971.Supabase_data` (BigQuery)
 
 | Table | Rows |
 |---|---:|

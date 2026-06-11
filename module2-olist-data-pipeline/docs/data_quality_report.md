@@ -1,7 +1,7 @@
 # Data Quality Report — Olist E-Commerce Dataset
 
 **Generated:** 2026-06-02
-**Source dataset:** `our-project-93971.kaggle_data`
+**Source dataset:** `our-project-93971.Supabase_data`
 **DQ dataset:** `our-project-93971.olist_dev_data_quality`
 **dbt run:** 24/24 models OK · 53/53 tests PASS
 

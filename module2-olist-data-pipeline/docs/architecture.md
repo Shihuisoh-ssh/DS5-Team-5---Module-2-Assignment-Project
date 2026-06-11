@@ -2,35 +2,52 @@
 
 **Date:** 2026-06-02
 **Project:** DS5 Team 5 — Module 2 Assignment
-**Dataset:** Olist Brazilian E-Commerce (Kaggle)
+**Dataset:** Olist Brazilian E-Commerce (Supabase)
 **Warehouse:** GCP BigQuery (`our-project-93971`)
+**EL tool:** Meltano (`tap-postgres` → `target-bigquery`)
 **Transform tool:** dbt (`our_project`, profile: `our_project`)
+**Orchestration:** Dagster
 
 ---
 
 ## Overview
 
-A three-layer ELT pipeline on GCP BigQuery. Raw CSV data is loaded directly into BigQuery and left untouched. dbt handles all transformation: a staging layer standardises the raw data, a data quality layer surfaces problematic rows as queryable tables, and a star schema layer produces clean, analysis-ready fact and dimension tables.
+An end-to-end ELT pipeline. Data is extracted from Supabase using Meltano and loaded into BigQuery raw tables. dbt handles all transformation: a staging layer standardises the raw data, a data quality layer surfaces problematic rows as queryable tables, and a star schema layer produces clean, analysis-ready fact and dimension tables. Dagster orchestrates the full sequence.
 
-```
-Kaggle CSVs
-    ↓ bq load
-kaggle_data (raw, untouched)
+```text
+Supabase (source)
+    ↓ Meltano (tap-postgres → target-bigquery)
+Supabase_data (raw, untouched)
     ↓ dbt run
 olist_dev_staging   (views)
     ↓               ↓
 olist_dev_          olist_dev_star
 data_quality        (tables)
 (tables)                ↓
-                    Analysis / Notebooks
+                    Jupyter Notebook analysis
+```
+
+Dagster orchestration:
+
+```text
+Dagster job
+├── Step 1: Run Meltano (Supabase → BigQuery)
+├── Step 2: Validate raw tables exist in BigQuery
+├── Step 3: Run dbt staging models
+├── Step 4: Run dbt data quality models
+├── Step 5: Run dbt star schema models
+├── Step 6: Run dbt tests
+└── Step 7: Prepare final tables for Jupyter Notebook analysis
 ```
 
 ---
 
 ## Source Data
 
+**Source system:** Supabase (PostgreSQL)
+**EL tool:** Meltano — `tap-postgres` (meltanolabs) → `target-bigquery` (z3z1ma)
 **BigQuery project:** `our-project-93971`
-**BigQuery dataset:** `kaggle_data`
+**BigQuery dataset (raw):** `Supabase_data`
 
 | Table | Rows | Key columns |
 |---|---|---|
@@ -44,7 +61,7 @@ data_quality        (tables)
 | `geolocation` | 1,000,163 | zip_code_prefix, lat, lng, city, state |
 | `category_name_translation` | 71 | product_category_name, product_category_name_english |
 
-All 9 tables verified to match local CSVs exactly (row counts confirmed via BigQuery query).
+All 9 tables extracted from Supabase via Meltano and loaded into BigQuery `Supabase_data` dataset (row counts verified).
 
 ---
 
@@ -87,7 +104,7 @@ dbt test    # validate schema tests
 **Naming:** `stg_<source_table>`
 
 ### Purpose
-Translate raw source tables into a clean, consistently structured foundation. No filtering, no joins, no business logic. Every downstream layer reads from staging — never directly from `kaggle_data`.
+Translate raw source tables into a clean, consistently structured foundation. No filtering, no joins, no business logic. Every downstream layer reads from staging — never directly from `Supabase_data`.
 
 ### Rules
 - One model per source table
@@ -255,7 +272,7 @@ Generated using `GENERATE_DATE_ARRAY('2016-01-01', '2018-12-31')` in BigQuery.
 ## Data Flow Summary
 
 ```
-kaggle_data (raw)
+Supabase → Meltano → Supabase_data (raw)
     │
     ├── stg_orders
     ├── stg_customers
@@ -293,12 +310,12 @@ kaggle_data (raw)
 
 | Reference step | This project |
 |---|---|
-| Kaggle CSV → VS Code | CSVs in `Data from Kaggle/` and `data/raw/` |
-| Load raw CSV into BigQuery | Done via `bq load` into `kaggle_data` dataset |
+| Source data | Stored in Supabase (PostgreSQL) |
+| Extract and load | Meltano `tap-postgres` → `target-bigquery` into `Supabase_data` dataset |
 | `dbt debug` | Configured and passing |
-| `dbt seed` / BigQuery upload | `bq load` used (not dbt seed — data too large) |
 | `dbt run` to build staging + marts | Builds all 3 layers in order |
 | `dbt test` to validate | schema.yml tests on all layers |
+| Orchestration | Dagster job sequences Meltano → dbt staging → dbt DQ → dbt star schema → dbt tests |
 | Star schema | `olist_dev_star` — 2 facts, 4 dims |
 | Analyse in BigQuery / notebook | `notebooks/01_data_understanding.ipynb` |
 
