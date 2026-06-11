@@ -1,0 +1,59 @@
+version: 1
+default_environment: dev
+project_id: 019ea14a-c22a-74cf-8336-6089ba4db533
+
+environments:
+- name: dev
+- name: staging
+- name: prod
+
+plugins:
+  extractors:
+  - name: tap-csv
+    variant: meltanolabs
+    pip_url: tap-csv
+    config:
+      files:
+      - entity: gh_product_category_name_translation
+        path: data/gh_product_category_name_translation.csv
+        keys: [product_category_name]
+
+      - entity: gh_customers_dataset
+        path: data/gh_customers_dataset.csv
+        keys: [customer_id]
+
+      - entity: gh_geolocation_dataset
+        path: data/gh_geolocation_dataset.csv
+        keys: []
+
+      - entity: gh_order_items_dataset
+        path: data/gh_order_items_dataset.csv
+        keys: []
+
+      - entity: gh_order_payments_dataset
+        path: data/gh_order_payments_dataset.csv
+        keys: []
+
+      - entity: gh_order_reviews_dataset
+        path: data/gh_order_reviews_dataset.csv
+        keys: []
+
+      - entity: gh_orders_dataset
+        path: data/gh_orders_dataset.csv
+        keys: [order_id]
+
+      - entity: gh_products_dataset
+        path: data/gh_products_dataset.csv
+        keys: [product_id]
+
+      - entity: gh_sellers_dataset
+        path: data/gh_sellers_dataset.csv
+        keys: [seller_id]
+  loaders:
+  - name: target-bigquery
+    variant: z3z1ma
+    pip_url: target-bigquery
+    config:
+      project_id: $TARGET_BIGQUERY_PROJECT_ID
+      dataset_id: $TARGET_BIGQUERY_DATASET_ID
+      location: US

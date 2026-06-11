@@ -1,0 +1,32 @@
+default_environment: dev
+project_id: 019ea29d-417d-7c17-83d1-9b5d6829e811
+environments:
+- name: dev
+- name: staging
+- name: prod
+python: python3.11
+plugins:
+  extractors:
+  - name: tap-postgres
+    variant: meltanolabs
+    pip_url: meltanolabs-tap-postgres
+    config:
+      database: postgres
+      filter_schemas:
+      - public
+      host: aws-1-ap-south-1.pooler.supabase.com
+      port: 6543
+      user: postgres
+  loaders:
+  - name: target-bigquery
+    variant: z3z1ma
+    pip_url: git+https://github.com/z3z1ma/target-bigquery.git setuptools<80
+    config:
+      batch_size: 104857600
+      credentials_json: /home/ssh/our-project-93971-6c82d41fb7c5.json
+      dataset: Supabase_data
+      denormalized: true
+      flattening_enabled: true
+      flattening_max_depth: 1
+      method: batch_job
+      project: our-project-93971
