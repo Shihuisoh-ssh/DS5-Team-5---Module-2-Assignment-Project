@@ -6,9 +6,9 @@ from pathlib import Path
 from dagster import AssetExecutionContext, asset
 from dotenv import load_dotenv
 
-PROJECT_ROOT = Path(__file__).parent.parent
-MELTANO_DIR = PROJECT_ROOT / "meltano"
-DBT_DIR = PROJECT_ROOT / "our_project"
+MELTANO_DIR = Path(__file__).parent.parent.parent  # dagster_project → orchestrate → meltano
+PROJECT_ROOT = MELTANO_DIR.parent                  # repo root (for .env)
+DBT_DIR = MELTANO_DIR / "transform" / "our_project"
 
 load_dotenv(PROJECT_ROOT / ".env")
 

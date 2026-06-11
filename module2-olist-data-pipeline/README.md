@@ -446,26 +446,34 @@ Expected: `24 of 24 OK` on run, `53 of 53 PASS` on test.
 ## 7. Project Structure
 
 ```
+meltano/                              ← full pipeline (lecture module 2 format)
+├── extract/                          ← Meltano handles extraction (meltano.yml)
+├── load/                             ← Meltano handles loading (meltano.yml)
+├── transform/
+│   └── our_project/                  ← dbt project root
+│       ├── dbt_project.yml
+│       └── models/
+│           ├── sources.yml           ← All 9 BigQuery source tables declared
+│           ├── staging/              ← 9 stg_* view models
+│           ├── data_quality/         ← 9 dq_* table models
+│           └── star/                 ← 2 fact + 4 dim table models
+├── orchestrate/
+│   └── dagster_project/              ← Dagster assets and schedule
+├── notebook/
+│   └── 01_data_understanding.ipynb   ← EDA + staging/DQ explanation
+├── output/
+├── plugins/                          ← Meltano plugin lock files
+└── meltano.yml                       ← Meltano config (tap-postgres → target-bigquery)
+
 module2-olist-data-pipeline/
 ├── data/
-│   └── raw/                          ← Local copies of the 9 CSVs
+│   └── raw/                          ← Local reference copies of the 9 CSVs
 ├── docs/
 │   ├── architecture.md               ← Pipeline design and layer details
 │   ├── data_dictionary.md            ← Column definitions and staging mapping
 │   ├── data_quality_report.md        ← DQ findings with actual row counts
 │   └── schema_design.md              ← Star schema with sample queries
-├── notebooks/
-│   └── 01_data_understanding.ipynb   ← EDA + staging/DQ explanation
 └── README.md
-
-our_project/                          ← dbt project root
-├── dbt_project.yml
-├── models/
-│   ├── sources.yml                   ← All 9 BigQuery source tables declared
-│   ├── staging/                      ← 9 stg_* view models
-│   ├── data_quality/                 ← 9 dq_* table models
-│   └── star/                         ← 2 fact + 4 dim table models
-└── ...
 ```
 
 ---
